@@ -2,7 +2,7 @@
 <html lang="pt-AO">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#102b55"><meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#102b55"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Baratinho Admin"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icons/icon.svg"><meta name="robots" content="noindex,nofollow">
 <title>Administração | Baratinho de Angola</title>
 <style>
 :root{--navy:#102b55;--blue:#1e4f8b;--gold:#f4b942;--ink:#18263b;--muted:#738197;--line:#e5ebf3;--bg:#f3f6fa;--white:#fff;--green:#16845c;--red:#bf4141;--shadow:0 8px 28px #102b550d}
@@ -101,4 +101,6 @@ else if(a==="deleteCategory"&&await ask("Eliminar esta categoria?"))await remove
 await render(page)}
 function bind(){document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>act(b.dataset.act,b.dataset.id))}
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{render(b.dataset.page);closeMenu()});\nfunction closeMenu(){const side=document.querySelector(".side");side.classList.remove("open");$("sideBackdrop").classList.remove("show");$("menuToggle").setAttribute("aria-expanded","false")}\n$("menuToggle").onclick=()=>{const side=document.querySelector(".side"),open=!side.classList.contains("open");side.classList.toggle("open",open);$("sideBackdrop").classList.toggle("show",open);$("menuToggle").setAttribute("aria-expanded",String(open))};\n$("sideBackdrop").onclick=closeMenu;
-</script></body></html>
+</script>
+<script>if ("serviceWorker" in navigator && location.protocol === "https:") { window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").catch(error => console.warn("PWA: falha ao registar service worker", error)); }); }</script>
+</body></html>
