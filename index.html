@@ -99,6 +99,31 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 @media(max-width:700px){.product-modal{padding:8px;place-items:end center}.product-modal-card{width:100%;max-height:92dvh;border-radius:18px 18px 10px 10px}.product-modal-head{padding:11px 13px}.product-modal-body{padding:10px 12px;gap:8px}.product-modal-hero{grid-template-columns:100px 1fr;gap:11px;min-height:96px}.product-modal-image{height:96px}.product-modal-name{font-size:18px;margin:6px 0}.product-modal-price{font-size:20px}.product-modal-grid{gap:6px}.product-modal-field{padding:8px;min-height:44px}.product-modal-actions{padding:9px 12px;align-items:stretch;flex-direction:column}.product-modal-action-group{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.product-modal-actions .btn{flex:1;font-size:12px;padding:9px 7px}.product-modal-actions>.btn{width:100%}}
 @media(max-height:720px) and (min-width:701px){.product-modal-card{max-height:96dvh}.product-modal-body{padding:7px 12px;gap:5px}.product-modal-hero{grid-template-columns:105px 1fr;min-height:78px}.product-modal-image{height:78px}.product-modal-field{min-height:40px;padding:5px 8px}.product-modal-actions{padding:6px 12px}}
 
+
+/* Encomendas: tabela administrativa limpa e responsiva */
+.orders-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.orders-stat{padding:15px 18px;background:#fff;border:1px solid #e2eaf5;border-radius:13px;box-shadow:0 4px 14px rgba(20,45,80,.04)}
+.orders-stat span{display:block;color:var(--muted);font-size:12px;font-weight:600;margin-bottom:5px}
+.orders-stat strong{display:block;color:var(--navy);font-size:25px;line-height:1.1}
+.orders-stat.waiting{background:#fffaf0;border-color:#f4e6c4}.orders-stat.completed{background:#f2fbf6;border-color:#d8eee1}
+.orders-panel{padding:0;overflow:hidden}
+.orders-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 19px;border-bottom:1px solid var(--line)}
+.orders-panel-head h3{margin:0;color:var(--navy);font-size:15px}.orders-panel-head p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.orders-count{padding:6px 10px;border-radius:20px;background:#edf3fb;color:var(--navy);font-size:11px;font-weight:700;white-space:nowrap}
+.orders-table-scroll{width:100%;overflow-x:auto}
+.orders-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:auto;min-width:790px}
+.orders-table th{padding:12px 13px;background:#f5f8fc;color:#65758e;font-size:11px;font-weight:750;text-align:left;white-space:nowrap}
+.orders-table td{padding:13px;border-top:1px solid #edf1f6;color:#253750;font-size:12px;vertical-align:middle}
+.orders-table tbody tr:hover{background:#fafcff}
+.order-ref{font-weight:800;color:#244b7e;letter-spacing:.3px;white-space:nowrap}
+.order-product{font-weight:700;color:#172d4c}
+.order-total{font-weight:800;color:var(--navy);white-space:nowrap}
+.order-status{display:inline-flex;align-items:center;padding:6px 9px;border-radius:20px;font-size:10px;font-weight:750;white-space:nowrap;background:#fff4d9;color:#956000}
+.order-status.ok{background:#e6f6ed;color:#137344}.order-status.bad{background:#fdeaea;color:#b83232}
+.orders-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.orders-actions .btn{padding:7px 9px;font-size:11px;min-height:32px}
+.orders-empty{text-align:center!important;padding:32px!important;color:var(--muted)!important}
+@media(max-width:760px){.orders-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}.orders-stat{padding:10px}.orders-stat span{font-size:10px;line-height:1.25}.orders-stat strong{font-size:20px}.orders-panel-head{padding:13px}.orders-table{min-width:760px}.orders-table th,.orders-table td{padding:10px}.orders-panel{border-radius:12px}}
 </style></head>
 <body>
 <section id="loginView" class="login">
@@ -210,7 +235,21 @@ else if(p==="products"){
  $("exportProducts").onclick=()=>{const rows=[["Produto","Vendedor","Preço","Localização","Estado"],...products.map(([id,x])=>[x.title||x.name||"",x.sellerName||cache.sellers?.[x.sellerUid]?.name||cache.sellers?.[x.sellerUid]?.profile?.name||cache.users?.[x.sellerUid]?.name||"Vendedor"||"",x.price||0,[x.municipality,x.province].filter(Boolean).join(", "),x.status||""])];const csv="\uFEFF"+rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(";")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="produtos-baratinho.csv";a.click();URL.revokeObjectURL(a.href)};
  drawProducts();
 }
-else if(p==="orders"){c.innerHTML=title("Encomendas","Consulte o ciclo das compras registadas.")+table(["Código","Comprador","Vendedor","Produto","Total","Estado","Acções"],orders.map(([id,x])=>'<tr><td>'+esc(id.slice(-10))+'</td><td>'+esc(x.buyerUid)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.productName||x.productId)+'</td><td>'+money(x.total)+'</td><td>'+pill(x.status)+'</td><td>'+rowActions([action("Em análise","orderReview",id),action("Cancelar","cancelOrder",id,"danger")])+'</td></tr>'))}
+else if(p==="orders"){
+ const awaiting=orders.filter(([id,x])=>["pending_payment","pending","awaiting_payment"].includes(x.status)).length;
+ const paid=orders.filter(([id,x])=>["paid","processing","shipped","in_transit","delivered"].includes(x.status)).length;
+ const shortUid=v=>{const s=String(v||"");return s.length>13?s.slice(0,7)+"…"+s.slice(-3):(s||"—")};
+ const buyerName=uid=>{const u=cache.users?.[uid];return u?.name||u?.displayName||shortUid(uid)};
+ const sellerName=uid=>{const s=cache.sellers?.[uid];return s?.name||s?.profile?.name||cache.users?.[uid]?.name||shortUid(uid)};
+ const productName=x=>x.productName||cache.products?.[x.productId]?.title||cache.products?.[x.productId]?.name||x.productId||"—";
+ const statusLabel=v=>({"pending_payment":"Aguarda pagamento","pending":"Pendente","paid":"Pago","processing":"Em preparação","shipped":"Expedido","in_transit":"Em trânsito","delivered":"Entregue","cancelled":"Cancelada"}[v]||v||"Pendente");
+ c.innerHTML=title("Encomendas","Acompanhe os pedidos, pagamentos e entregas.")+
+ '<div class="orders-summary"><div class="orders-stat"><span>Total de encomendas</span><strong>'+orders.length+'</strong></div><div class="orders-stat waiting"><span>Aguardam pagamento</span><strong>'+awaiting+'</strong></div><div class="orders-stat completed"><span>Pagas / em processamento</span><strong>'+paid+'</strong></div></div>'+
+ '<div class="panel orders-panel"><div class="orders-panel-head"><div><h3>Registos de encomendas</h3><p>Informações essenciais e acções de gestão</p></div><span class="orders-count">'+orders.length+' registo(s)</span></div>'+
+ '<div class="orders-table-scroll"><table class="orders-table"><thead><tr><th>Referência</th><th>Comprador</th><th>Vendedor</th><th>Produto</th><th>Total</th><th>Estado</th><th>Acções</th></tr></thead><tbody>'+
+ (orders.length?orders.map(([id,x])=>'<tr><td><span class="order-ref">#'+esc(id.slice(-8).toUpperCase())+'</span></td><td>'+esc(buyerName(x.buyerUid))+'</td><td>'+esc(sellerName(x.sellerUid))+'</td><td><span class="order-product">'+esc(productName(x))+'</span></td><td class="order-total">'+money(x.total??x.unitPrice??0)+'</td><td><span class="order-status '+(["paid","delivered","completed"].includes(x.status)?"ok":["cancelled","rejected","failed"].includes(x.status)?"bad":"pending")+'">'+esc(statusLabel(x.status))+'</span></td><td><div class="orders-actions">'+action("Analisar","orderReview",id,"light")+action("Cancelar","cancelOrder",id,"danger")+'</div></td></tr>').join(""):'<tr><td colspan="7" class="orders-empty">Ainda não existem encomendas registadas.</td></tr>')+
+ '</tbody></table></div></div>';
+}
 else if(p==="payments"){c.innerHTML=title("Pagamentos","Consulta de registos de pagamento e respectivos estados.")+'<div class="notice">Não marque um pagamento como liquidado apenas com base no pedido do comprador ou vendedor. A confirmação deverá vir do prestador financeiro autorizado, por integração autenticada.</div>'+table(["Pagamento","Encomenda","Comprador","Valor","Estado","Data"],payments.map(([id,x])=>'<tr><td>'+esc(id)+'</td><td>'+esc(x.orderId)+'</td><td>'+esc(x.buyerUid)+'</td><td>'+money(x.amount)+'</td><td>'+pill(x.status)+'</td><td>'+esc(x.createdAt?new Date(x.createdAt).toLocaleString("pt-AO"):"—")+'</td></tr>'))}
 else if(p==="shipments"){c.innerHTML=title("Expedições","Acompanhe comprovativos e estados de transporte.")+table(["Encomenda","Vendedor","Transportadora","Código","Estado","Comprovativo"],shipments.map(([id,x])=>'<tr><td>'+esc(x.orderId)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.transportName||x.transportId)+'</td><td>'+esc(x.trackingCode)+'</td><td>'+pill(x.status)+'</td><td>'+(x.receiptImage?'<a target="_blank" href="'+esc(x.receiptImage)+'">Ver recibo</a>':"—")+'</td></tr>'))}
 else if(p==="complaints"){c.innerHTML=title("Reclamações","Analise conflitos e registe a resolução.")+table(["Código","Encomenda","Comprador","Vendedor","Assunto","Estado","Acções"],complaints.map(([id,x])=>'<tr><td>'+esc(id.slice(-8))+'</td><td>'+esc(x.orderId)+'</td><td>'+esc(x.buyerUid)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.subject||x.reason)+'</td><td>'+pill(x.status)+'</td><td>'+rowActions([action("Resolver","resolveComplaint",id,"primary"),action("Em análise","investigateComplaint",id)])+'</td></tr>'))}
