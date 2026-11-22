@@ -152,7 +152,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .payment-state.green{background:#e6f7ee;color:#087847}.payment-state.red{background:#ffeded;color:#bd3434}
 @media(max-width:900px){.payments-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.payments-heading{padding:14px}}
 @media(max-width:520px){.payments-summary{gap:8px}.payments-summary>div{padding:12px}.payments-summary strong{font-size:23px}.payments-heading{align-items:flex-start;gap:8px}.payments-heading>span{white-space:nowrap}}
-</style></head>
+.payment-proof-thumb{width:76px;height:58px;object-fit:contain;border:1px solid #dfe7f1;border-radius:8px;background:#fff;display:block}.payments-table{min-width:1050px}.payments-table td .actions{display:flex;gap:5px;flex-wrap:wrap}.payments-table td .btn{padding:7px 9px;font-size:11px;white-space:nowrap}.payment-source{max-width:140px;overflow-wrap:anywhere}@media(max-width:760px){.payments-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.payments-table{min-width:980px}}</style></head>
 <body>
 <section id="loginView" class="login">
  <div class="login-hero"><div class="brand"><span class="mark">BA</span> Baratinho de Angola <span style="font-size:10px;background:#ffffff20;padding:5px 8px;border-radius:20px">ADMIN</span></div><div><h1>Centro de controlo da plataforma.</h1><p>Gestão de vendedores, produtos, encomendas, pagamentos e operações do marketplace nacional.</p></div><div class="hero-foot">Acesso restrito a membros autorizados da administração.</div></div>
@@ -185,7 +185,7 @@ const app=initializeApp(config),auth=getAuth(app),db=getDatabase(app);
 const ADMIN_EMAIL="eduardo.gabriel@apsanlda.com";
 const $=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),money=v=>new Intl.NumberFormat("pt-AO",{style:"currency",currency:"AOA",maximumFractionDigits:0}).format(Number(v)||0);
 let adminUser=null,adminRecord=null,cache={},page="dashboard";
-const paths=["users","sellers","products","orders","payments","shipments","complaints","reviews","categories","settings","auditLogs","transactions","refunds","transportCompanies","commissions"];
+const paths=["users","sellers","products","orders","payments","paymentProofs","shipments","complaints","reviews","categories","settings","auditLogs","transactions","refunds","transportCompanies","commissions"];
 function message(t,kind="error"){$("loginMsg").innerHTML=t?'<div class="msg '+kind+'">'+esc(t)+'</div>':""}
 function errText(e){const c=e?.code||"";if(c.includes("invalid-credential")||c.includes("wrong-password")||c.includes("user-not-found"))return"E-mail ou palavra-passe incorrectos.";if(c.includes("invalid-email"))return"O formato do e-mail é inválido.";if(c.includes("user-disabled"))return"Esta conta foi desactivada no Firebase Authentication.";if(c.includes("too-many-requests"))return"Muitas tentativas. Aguarde alguns minutos e tente novamente.";if(c.includes("operation-not-allowed"))return"O método de acesso por e-mail e palavra-passe está desactivado no Firebase Authentication.";if(c.includes("unauthorized-domain"))return"Este domínio ainda não está autorizado no Firebase Authentication.";if(c.includes("network"))return"Falha de ligação à Internet. Verifique a rede e tente novamente.";if(c.includes("permission-denied"))return"Acesso negado pelas regras do Realtime Database.";return(e?.message||"Ocorreu um erro.")+(c?" ["+c+"]":"")}
 async function performAdminLogin(e){
@@ -291,43 +291,26 @@ else if(p==="orders"){
  '</tbody></table></div></div>';
 }
 else if(p==="payments"){
- const paidStates=["paid","completed","complete","success","successful","confirmed","settled","approved","liquidated"];
- const pendingStates=["pending","pending_payment","awaiting_payment","processing_payment","initiated","created","waiting"];
- const cancelledStates=["cancelled","canceled","failed","rejected","refunded","expired"];
- const stateOf=x=>String(x?.paymentStatus||x?.payment?.status||x?.transactionStatus||x?.status||"unknown").toLowerCase();
- const isPaid=x=>paidStates.includes(stateOf(x))||x?.payment?.paid===true||x?.paid===true;
- const isPending=x=>pendingStates.includes(stateOf(x));
- const isCancelled=x=>cancelledStates.includes(stateOf(x));
- const orderRef=x=>x?.orderId||x?.orderID||x?.order_id||x?.order?.id||x?.reference||x?.orderReference||"—";
- const buyerRef=x=>x?.buyerUid||x?.buyerId||x?.userId||x?.customerUid||x?.buyer?.uid||x?.buyer?.name||"—";
- const amountOf=x=>x?.amount??x?.total??x?.paidAmount??x?.payment?.amount??x?.order?.total??0;
- const dateOf=x=>x?.createdAt||x?.paidAt||x?.updatedAt||x?.timestamp||x?.date||x?.payment?.createdAt;
- const fmtDate=v=>{if(!v)return "—";const d=typeof v==="number"?new Date(v<1e12?v*1000:v):new Date(v);return Number.isNaN(d.getTime())?"—":d.toLocaleString("pt-AO")};
- const rows=[],seen=new Set();
- const add=(id,x,source)=>{
-  const ref=orderRef(x),key=ref!=="—"?"order:"+ref:"record:"+source+":"+id;
-  if(seen.has(key))return;seen.add(key);
-  const state=stateOf(x),label=isPaid(x)?"Confirmado":isPending(x)?"Pendente":isCancelled(x)?"Cancelado / falhado":state==="unknown"?"Sem estado":state.replace(/_/g," ");
-  const tone=isPaid(x)?"green":isCancelled(x)?"red":"";
-  rows.push({id,ref,buyer:buyerRef(x),amount:amountOf(x),date:fmtDate(dateOf(x)),label,tone,source});
+ const proofs=arr("paymentProofs"),proofOrders=cache.orders||{},proofUsers=cache.users||{};
+ const statusText=s=>({submitted:"A aguardar análise",pending:"A aguardar análise",approved:"Aprovado",rejected:"Rejeitado",deleted:"Removido"}[String(s||"submitted").toLowerCase()]||String(s||"A aguardar análise").replace(/_/g," "));
+ const isWaiting=x=>["submitted","pending","awaiting_confirmation",""].includes(String(x?.status||"submitted").toLowerCase());
+ const amountLabel=x=>{const v=Number(x?.paymentAmount??x?.amount??0);return x?.currency==="NAD"?"N$ "+v.toLocaleString("en-NA",{minimumFractionDigits:2,maximumFractionDigits:2}):money(v)};
+ const buyerLabel=x=>{const u=proofUsers[x?.buyerUid]||{};return u.name||u.fullName||u.email||x?.buyerUid||"—"};
+ const orderLabel=(id,x)=>{const o=proofOrders[id]||{};return o.productName||o.productId||"Encomenda #"+String(id).slice(-8).toUpperCase()};
+ const dateLabel=v=>{if(!v)return "—";const d=new Date(v);return Number.isNaN(d.getTime())?"—":d.toLocaleString("pt-AO")};
+ const waiting=proofs.filter(([id,x])=>isWaiting(x));
+ const approved=proofs.filter(([id,x])=>String(x.status).toLowerCase()==="approved").length;
+ const rejected=proofs.filter(([id,x])=>String(x.status).toLowerCase()==="rejected").length;
+ const row=([id,x])=>{
+  const o=proofOrders[id]||{},mime=x.mimeType||"",data=x.data||"",preview=mime==="application/pdf"&&data?'<a class="btn light" target="_blank" rel="noopener" href="'+esc(data)+'">Ver PDF</a>':/^image\//.test(mime)&&data?'<a target="_blank" rel="noopener" href="'+esc(data)+'"><img class="payment-proof-thumb" src="'+esc(data)+'" alt="Comprovativo enviado"></a>':'<span class="muted">Sem pré-visualização</span>';
+  const actions=isWaiting(x)?rowActions([action("Aprovar","approvePaymentProof",id,"primary"),action("Rejeitar","rejectPaymentProof",id,"danger"),action("Editar","editPaymentProof",id),action("Eliminar","deletePaymentProof",id,"danger")]):rowActions([action("Ver","viewPaymentProof",id),action("Editar","editPaymentProof",id),action("Eliminar","deletePaymentProof",id,"danger")]);
+  return '<tr><td><strong>#'+esc(String(id).slice(-8).toUpperCase())+'</strong><small class="payment-source">'+esc(x.fileName||"Comprovativo")+'</small></td><td>'+esc(orderLabel(id,x))+'</td><td>'+esc(buyerLabel(x))+'</td><td class="payment-amount">'+amountLabel(x)+'</td><td>'+preview+'</td><td><span class="payment-state '+(x.status==="approved"?"green":x.status==="rejected"?"red":"")+'">'+esc(statusText(x.status))+'</span></td><td>'+esc(dateLabel(x.submittedAt||x.createdAt))+'</td><td>'+actions+'</td></tr>';
  };
- payments.forEach(([id,x])=>add(id,x,"payments"));
- arr("transactions").forEach(([id,x])=>add(id,x,"transactions"));
- orders.forEach(([id,x])=>{
-  const paymentState=String(x?.paymentStatus||x?.payment?.status||"").toLowerCase();
-  const orderState=String(x?.status||"").toLowerCase();
-  if(isPaid(x)||paidStates.includes(paymentState)||["processing","shipped","in_transit","delivered"].includes(orderState))
-   add(id,{...x,orderId:id,status:isPaid(x)?stateOf(x):(paymentState||"paid"),amount:x?.paidAmount??x?.total??x?.unitPrice??0},"orders");
- });
- const confirmed=rows.filter(x=>x.label==="Confirmado").length;
- const pending=rows.filter(x=>x.label==="Pendente").length;
- const failed=rows.filter(x=>x.label==="Cancelado / falhado").length;
- const fmtSource=s=>({payments:"Pagamentos",transactions:"Transacções",orders:"Encomendas"}[s]||s);
- const paymentTable=rows.sort((a,b)=>{const rank=x=>x.label==="Pendente"?0:x.label==="Confirmado"?1:2;return rank(a)-rank(b)}).map(x=>'<tr><td><strong class="payment-ref">#'+esc(String(x.id).slice(-10).toUpperCase())+'</strong><small class="payment-source">'+fmtSource(x.source)+'</small></td><td>'+esc(x.ref)+'</td><td>'+esc(x.buyer)+'</td><td class="payment-amount">'+money(x.amount)+'</td><td><span class="payment-state '+x.tone+'">'+esc(x.label)+'</span></td><td>'+esc(x.date)+'</td></tr>');
- c.innerHTML=title("Pagamentos","Acompanhe pagamentos registados, transacções e encomendas.")+
- '<div class="payments-summary"><div><span>Total de registos</span><strong>'+rows.length+'</strong></div><div class="is-paid"><span>Confirmados</span><strong>'+confirmed+'</strong></div><div class="is-pending"><span>Pendentes</span><strong>'+pending+'</strong></div><div class="is-failed"><span>Cancelados / falhados</span><strong>'+failed+'</strong></div></div>'+
- '<div class="notice">Os registos são reunidos das secções Pagamentos, Transacções e Encomendas. Um estado confirmado é apresentado conforme os dados guardados; esta página não altera nem confirma pagamentos junto do prestador financeiro.</div>'+
- '<div class="panel payments-panel"><div class="payments-heading"><div><h3>Histórico de pagamentos</h3><p>Registos disponíveis na plataforma</p></div><span>'+rows.length+' registo(s)</span></div><div class="table-wrap"><table class="payments-table"><thead><tr><th>Referência</th><th>Encomenda</th><th>Comprador</th><th>Valor</th><th>Estado</th><th>Data</th></tr></thead><tbody>'+(paymentTable.length?paymentTable.join(""):'<tr><td colspan="6" class="empty">Ainda não existem registos de pagamento nas colecções consultadas.</td></tr>')+'</tbody></table></div></div>';
+ const rows=proofs.slice().sort((a,b)=>(b[1].submittedAt||0)-(a[1].submittedAt||0)).map(row);
+ c.innerHTML=title("Pagamentos","Verifique os comprovativos enviados e confirme a entrada efectiva do dinheiro.")+
+ '<div class="payments-summary"><div><span>Comprovativos recebidos</span><strong>'+proofs.length+'</strong></div><div class="is-pending"><span>Aguardam análise</span><strong>'+waiting.length+'</strong></div><div class="is-paid"><span>Aprovados</span><strong>'+approved+'</strong></div><div class="is-failed"><span>Rejeitados</span><strong>'+rejected+'</strong></div></div>'+
+ '<div class="notice">A Direcção deve confirmar a entrada do dinheiro na conta antes de aprovar. A aprovação actualiza o pagamento e liberta a encomenda para o vendedor. Nunca aprove apenas com base na imagem do comprovativo.</div>'+
+ '<div class="panel payments-panel"><div class="payments-heading"><div><h3>Comprovativos enviados</h3><p>Documentos submetidos pelos compradores para validação da Direcção</p></div><span>'+waiting.length+' por analisar</span></div><div class="table-wrap"><table class="payments-table"><thead><tr><th>Referência</th><th>Produto / encomenda</th><th>Comprador</th><th>Valor declarado</th><th>Comprovativo</th><th>Estado</th><th>Data de envio</th><th>Acções</th></tr></thead><tbody>'+(rows.length?rows.join(""):'<tr><td colspan="8" class="empty">Ainda não foram encontrados comprovativos em paymentProofs.</td></tr>')+'</tbody></table></div></div>';
 }
 else if(p==="shipments"){c.innerHTML=title("Expedições","Acompanhe comprovativos e estados de transporte.")+table(["Encomenda","Vendedor","Transportadora","Código","Estado","Comprovativo"],shipments.map(([id,x])=>'<tr><td>'+esc(x.orderId)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.transportName||x.transportId)+'</td><td>'+esc(x.trackingCode)+'</td><td>'+pill(x.status)+'</td><td>'+(x.receiptImage?'<a target="_blank" href="'+esc(x.receiptImage)+'">Ver recibo</a>':"—")+'</td></tr>'))}
 else if(p==="complaints"){c.innerHTML=title("Reclamações","Analise conflitos e registe a resolução.")+table(["Código","Encomenda","Comprador","Vendedor","Assunto","Estado","Acções"],complaints.map(([id,x])=>'<tr><td>'+esc(id.slice(-8))+'</td><td>'+esc(x.orderId)+'</td><td>'+esc(x.buyerUid)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.subject||x.reason)+'</td><td>'+pill(x.status)+'</td><td>'+rowActions([action("Resolver","resolveComplaint",id,"primary"),action("Em análise","investigateComplaint",id)])+'</td></tr>'))}
@@ -375,7 +358,36 @@ else if(a==="deactivateProduct"){if(!await ask("Desactivar este produto?"))retur
 else if(a==="viewProduct"){const x=cache.products?.[id]||{};showProductDetails(id,x)}
 else if(a==="editProduct"){const x=cache.products?.[id]||{};const name=prompt("Nome do produto:",x.title||x.name||"");if(name===null)return;const price=prompt("Preço (Kz):",x.price??"");if(price===null)return;if(!name.trim()||!Number.isFinite(Number(price))||Number(price)<0){alert("Nome ou preço inválido.");return}await update(ref(db,"products/"+id),{...(x.title!==undefined?{title:name.trim()}:{name:name.trim()}),price:Number(price),updatedAt:Date.now(),updatedBy:adminUser.uid})}
 else if(a==="deleteProduct"){if(!await ask("Eliminar definitivamente este produto? Esta acção não pode ser anulada."))return false;await remove(ref(db,"products/"+id))}
-else if(a==="orderReview")alert("Pedido seleccionado. A confirmação financeira e a libertação de fundos não são executadas por esta acção.");
+else if(a==="viewPaymentProof"){const x=cache.paymentProofs?.[id]||{};if(x.data)window.open(x.data,"_blank","noopener");else alert("Este registo não contém um ficheiro de comprovativo.");}
+else if(a==="approvePaymentProof"){
+ const proof=cache.paymentProofs?.[id]||{},order=cache.orders?.[id]||{};
+ if(!await ask("Confirma que verificou a conta bancária e que o dinheiro entrou efectivamente? Só aprove se a entrada estiver confirmada."))return false;
+ const now=Date.now(),label="Pagamento aprovado pela Direcção";
+ await update(ref(db,"paymentProofs/"+id),{status:"approved",reviewedAt:now,approvedAt:now,reviewedBy:adminUser.uid});
+ await update(ref(db,"orders/"+id),{status:"paid",paymentStatus:"paid",paymentProofStatus:"approved",paidAt:now,updatedAt:now,paymentApprovedBy:adminUser.uid});
+ await set(push(ref(db,"orders/"+id+"/tracking")),{status:"paid",label,at:now,byUid:adminUser.uid});
+ if(order.buyerUid)await set(push(ref(db,"notifications/"+order.buyerUid)),{type:"payment_approved",orderId:id,title:"Pagamento confirmado",message:"A Direcção confirmou a entrada do seu pagamento. A encomenda foi aprovada.",read:false,createdAt:now});
+ if(order.sellerUid)await set(push(ref(db,"notifications/"+order.sellerUid)),{type:"payment_approved",orderId:id,title:"Nova encomenda paga",message:"A Direcção confirmou o pagamento da encomenda. Já pode dar seguimento ao pedido.",read:false,createdAt:now});
+}
+else if(a==="rejectPaymentProof"){
+ const proof=cache.paymentProofs?.[id]||{},order=cache.orders?.[id]||{},reason=prompt("Indique o motivo da rejeição do comprovativo:","");
+ if(reason===null)return false;if(!reason.trim()){alert("Indique o motivo da rejeição.");return false}
+ const now=Date.now(),label="Comprovativo rejeitado pela Direcção";
+ await update(ref(db,"paymentProofs/"+id),{status:"rejected",rejectionReason:reason.trim(),reviewedAt:now,reviewedBy:adminUser.uid});
+ await update(ref(db,"orders/"+id),{status:"pending_payment",paymentStatus:"rejected",paymentProofStatus:"rejected",paymentRejectionReason:reason.trim(),updatedAt:now});
+ await set(push(ref(db,"orders/"+id+"/tracking")),{status:"pending_payment",label,note:reason.trim(),at:now,byUid:adminUser.uid});
+ if(order.buyerUid)await set(push(ref(db,"notifications/"+order.buyerUid)),{type:"payment_rejected",orderId:id,title:"Comprovativo não aprovado",message:"A Direcção não aprovou o comprovativo. Motivo: "+reason.trim(),read:false,createdAt:now});
+}
+else if(a==="editPaymentProof"){
+ const x=cache.paymentProofs?.[id]||{},note=prompt("Nota interna da Direcção (não altera o comprovativo original):",x.adminNote||"");
+ if(note===null)return false;
+ await update(ref(db,"paymentProofs/"+id),{adminNote:note.trim(),noteUpdatedAt:Date.now(),noteUpdatedBy:adminUser.uid});
+}
+else if(a==="deletePaymentProof"){
+ if(!await ask("Eliminar definitivamente este comprovativo? A encomenda será mantida e ficará sem comprovativo associado."))return false;
+ await remove(ref(db,"paymentProofs/"+id));
+ await update(ref(db,"orders/"+id),{paymentProofStatus:"removed",paymentStatus:"awaiting_confirmation",status:"pending_payment",updatedAt:Date.now()});
+}else if(a==="orderReview")alert("Pedido seleccionado. A confirmação financeira e a libertação de fundos não são executadas por esta acção.");
 else if(a==="cancelOrder"&&await ask("Cancelar esta encomenda? Confirme que a política de reembolso foi cumprida."))await update(ref(db,"orders/"+id),{status:"cancelled",cancelledAt:Date.now(),cancelledBy:adminUser.uid});
 else if(a==="resolveComplaint"&&await ask("Marcar esta reclamação como resolvida?"))await update(ref(db,"complaints/"+id),{status:"resolved",resolvedAt:Date.now(),resolvedBy:adminUser.uid});
 else if(a==="investigateComplaint")await update(ref(db,"complaints/"+id),{status:"investigating",updatedAt:Date.now(),updatedBy:adminUser.uid});
