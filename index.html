@@ -131,6 +131,27 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .order-product-placeholder{display:grid;place-items:center;color:#8493a8;font-size:20px;background:#f1f5fa}
 .order-product{font-weight:700;color:#172d4c;line-height:1.3}
 @media(max-width:760px){.order-product-thumb,.order-product-placeholder{width:40px;height:38px;flex-basis:40px}.order-product-cell{min-width:140px;gap:7px}}
+
+/* Pagamentos: resumo e histórico */
+.payments-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 20px}
+.payments-summary>div{background:#fff;border:1px solid #e1eaf5;border-radius:15px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;box-shadow:0 4px 14px rgba(16,43,85,.04)}
+.payments-summary span{font-size:13px;color:#70819b}.payments-summary strong{font-size:27px;color:#102b55}
+.payments-summary .is-paid{background:#f1faf5;border-color:#d4efdf}.payments-summary .is-paid strong{color:#14834e}
+.payments-summary .is-pending{background:#fff9ed;border-color:#f4e5c4}.payments-summary .is-pending strong{color:#a96700}
+.payments-summary .is-failed{background:#fff5f4;border-color:#f4dfdc}.payments-summary .is-failed strong{color:#c43b35}
+.payments-panel{margin-top:18px;overflow:hidden}
+.payments-heading{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #e8eef6}
+.payments-heading h3{margin:0 0 5px;color:#102b55;font-size:16px}.payments-heading p{margin:0;color:#7b8ba3;font-size:13px}
+.payments-heading>span{background:#eef4fb;color:#24466f;border-radius:20px;padding:7px 12px;font-size:12px;font-weight:700}
+.payments-table{width:100%;border-collapse:collapse;min-width:760px}
+.payments-table th{background:#f5f8fc;color:#61738e;font-size:12px;text-align:left;padding:13px 14px;white-space:nowrap}
+.payments-table td{padding:14px;border-bottom:1px solid #edf1f6;color:#243854;font-size:13px;vertical-align:middle}
+.payment-ref{color:#17447b}.payment-source{display:block;color:#8997aa;font-size:10px;margin-top:3px}
+.payment-amount{font-weight:800;white-space:nowrap}
+.payment-state{display:inline-flex;border-radius:20px;padding:6px 10px;background:#fff5dc;color:#946000;font-size:11px;font-weight:700;white-space:nowrap}
+.payment-state.green{background:#e6f7ee;color:#087847}.payment-state.red{background:#ffeded;color:#bd3434}
+@media(max-width:900px){.payments-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.payments-heading{padding:14px}}
+@media(max-width:520px){.payments-summary{gap:8px}.payments-summary>div{padding:12px}.payments-summary strong{font-size:23px}.payments-heading{align-items:flex-start;gap:8px}.payments-heading>span{white-space:nowrap}}
 </style></head>
 <body>
 <section id="loginView" class="login">
@@ -269,7 +290,45 @@ else if(p==="orders"){
  (orders.length?orders.map(([id,x])=>'<tr><td><span class="order-ref">#'+esc(id.slice(-8).toUpperCase())+'</span></td><td>'+esc(buyerName(x.buyerUid))+'</td><td>'+esc(sellerName(x.sellerUid))+'</td><td><div class="order-product-cell">'+productThumb(x)+'<span class="order-product">'+esc(productName(x))+'</span></div></td><td class="order-total">'+money(x.total??x.unitPrice??0)+'</td><td><span class="order-status '+(["paid","delivered","completed"].includes(x.status)?"ok":["cancelled","rejected","failed"].includes(x.status)?"bad":"pending")+'">'+esc(statusLabel(x.status))+'</span></td><td><div class="orders-actions">'+action("Analisar","orderReview",id,"light")+action("Cancelar","cancelOrder",id,"danger")+'</div></td></tr>').join(""):'<tr><td colspan="7" class="orders-empty">Ainda não existem encomendas registadas.</td></tr>')+
  '</tbody></table></div></div>';
 }
-else if(p==="payments"){c.innerHTML=title("Pagamentos","Consulta de registos de pagamento e respectivos estados.")+'<div class="notice">Não marque um pagamento como liquidado apenas com base no pedido do comprador ou vendedor. A confirmação deverá vir do prestador financeiro autorizado, por integração autenticada.</div>'+table(["Pagamento","Encomenda","Comprador","Valor","Estado","Data"],payments.map(([id,x])=>'<tr><td>'+esc(id)+'</td><td>'+esc(x.orderId)+'</td><td>'+esc(x.buyerUid)+'</td><td>'+money(x.amount)+'</td><td>'+pill(x.status)+'</td><td>'+esc(x.createdAt?new Date(x.createdAt).toLocaleString("pt-AO"):"—")+'</td></tr>'))}
+else if(p==="payments"){
+ const paidStates=["paid","completed","complete","success","successful","confirmed","settled","approved","liquidated"];
+ const pendingStates=["pending","pending_payment","awaiting_payment","processing_payment","initiated","created","waiting"];
+ const cancelledStates=["cancelled","canceled","failed","rejected","refunded","expired"];
+ const stateOf=x=>String(x?.paymentStatus||x?.payment?.status||x?.transactionStatus||x?.status||"unknown").toLowerCase();
+ const isPaid=x=>paidStates.includes(stateOf(x))||x?.payment?.paid===true||x?.paid===true;
+ const isPending=x=>pendingStates.includes(stateOf(x));
+ const isCancelled=x=>cancelledStates.includes(stateOf(x));
+ const orderRef=x=>x?.orderId||x?.orderID||x?.order_id||x?.order?.id||x?.reference||x?.orderReference||"—";
+ const buyerRef=x=>x?.buyerUid||x?.buyerId||x?.userId||x?.customerUid||x?.buyer?.uid||x?.buyer?.name||"—";
+ const amountOf=x=>x?.amount??x?.total??x?.paidAmount??x?.payment?.amount??x?.order?.total??0;
+ const dateOf=x=>x?.createdAt||x?.paidAt||x?.updatedAt||x?.timestamp||x?.date||x?.payment?.createdAt;
+ const fmtDate=v=>{if(!v)return "—";const d=typeof v==="number"?new Date(v<1e12?v*1000:v):new Date(v);return Number.isNaN(d.getTime())?"—":d.toLocaleString("pt-AO")};
+ const rows=[],seen=new Set();
+ const add=(id,x,source)=>{
+  const ref=orderRef(x),key=ref!=="—"?"order:"+ref:"record:"+source+":"+id;
+  if(seen.has(key))return;seen.add(key);
+  const state=stateOf(x),label=isPaid(x)?"Confirmado":isPending(x)?"Pendente":isCancelled(x)?"Cancelado / falhado":state==="unknown"?"Sem estado":state.replace(/_/g," ");
+  const tone=isPaid(x)?"green":isCancelled(x)?"red":"";
+  rows.push({id,ref,buyer:buyerRef(x),amount:amountOf(x),date:fmtDate(dateOf(x)),label,tone,source});
+ };
+ payments.forEach(([id,x])=>add(id,x,"payments"));
+ arr("transactions").forEach(([id,x])=>add(id,x,"transactions"));
+ orders.forEach(([id,x])=>{
+  const paymentState=String(x?.paymentStatus||x?.payment?.status||"").toLowerCase();
+  const orderState=String(x?.status||"").toLowerCase();
+  if(isPaid(x)||paidStates.includes(paymentState)||["processing","shipped","in_transit","delivered"].includes(orderState))
+   add(id,{...x,orderId:id,status:isPaid(x)?stateOf(x):(paymentState||"paid"),amount:x?.paidAmount??x?.total??x?.unitPrice??0},"orders");
+ });
+ const confirmed=rows.filter(x=>x.label==="Confirmado").length;
+ const pending=rows.filter(x=>x.label==="Pendente").length;
+ const failed=rows.filter(x=>x.label==="Cancelado / falhado").length;
+ const fmtSource=s=>({payments:"Pagamentos",transactions:"Transacções",orders:"Encomendas"}[s]||s);
+ const paymentTable=rows.sort((a,b)=>{const rank=x=>x.label==="Pendente"?0:x.label==="Confirmado"?1:2;return rank(a)-rank(b)}).map(x=>'<tr><td><strong class="payment-ref">#'+esc(String(x.id).slice(-10).toUpperCase())+'</strong><small class="payment-source">'+fmtSource(x.source)+'</small></td><td>'+esc(x.ref)+'</td><td>'+esc(x.buyer)+'</td><td class="payment-amount">'+money(x.amount)+'</td><td><span class="payment-state '+x.tone+'">'+esc(x.label)+'</span></td><td>'+esc(x.date)+'</td></tr>');
+ c.innerHTML=title("Pagamentos","Acompanhe pagamentos registados, transacções e encomendas.")+
+ '<div class="payments-summary"><div><span>Total de registos</span><strong>'+rows.length+'</strong></div><div class="is-paid"><span>Confirmados</span><strong>'+confirmed+'</strong></div><div class="is-pending"><span>Pendentes</span><strong>'+pending+'</strong></div><div class="is-failed"><span>Cancelados / falhados</span><strong>'+failed+'</strong></div></div>'+
+ '<div class="notice">Os registos são reunidos das secções Pagamentos, Transacções e Encomendas. Um estado confirmado é apresentado conforme os dados guardados; esta página não altera nem confirma pagamentos junto do prestador financeiro.</div>'+
+ '<div class="panel payments-panel"><div class="payments-heading"><div><h3>Histórico de pagamentos</h3><p>Registos disponíveis na plataforma</p></div><span>'+rows.length+' registo(s)</span></div><div class="table-wrap"><table class="payments-table"><thead><tr><th>Referência</th><th>Encomenda</th><th>Comprador</th><th>Valor</th><th>Estado</th><th>Data</th></tr></thead><tbody>'+(paymentTable.length?paymentTable.join(""):'<tr><td colspan="6" class="empty">Ainda não existem registos de pagamento nas colecções consultadas.</td></tr>')+'</tbody></table></div></div>';
+}
 else if(p==="shipments"){c.innerHTML=title("Expedições","Acompanhe comprovativos e estados de transporte.")+table(["Encomenda","Vendedor","Transportadora","Código","Estado","Comprovativo"],shipments.map(([id,x])=>'<tr><td>'+esc(x.orderId)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.transportName||x.transportId)+'</td><td>'+esc(x.trackingCode)+'</td><td>'+pill(x.status)+'</td><td>'+(x.receiptImage?'<a target="_blank" href="'+esc(x.receiptImage)+'">Ver recibo</a>':"—")+'</td></tr>'))}
 else if(p==="complaints"){c.innerHTML=title("Reclamações","Analise conflitos e registe a resolução.")+table(["Código","Encomenda","Comprador","Vendedor","Assunto","Estado","Acções"],complaints.map(([id,x])=>'<tr><td>'+esc(id.slice(-8))+'</td><td>'+esc(x.orderId)+'</td><td>'+esc(x.buyerUid)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.subject||x.reason)+'</td><td>'+pill(x.status)+'</td><td>'+rowActions([action("Resolver","resolveComplaint",id,"primary"),action("Em análise","investigateComplaint",id)])+'</td></tr>'))}
 else if(p==="reviews"){c.innerHTML=title("Avaliações","Consulte avaliações dos compradores.")+table(["Produto","Vendedor","Comprador","Classificação","Comentário"],reviews.map(([id,x])=>'<tr><td>'+esc(x.productId)+'</td><td>'+esc(x.sellerUid)+'</td><td>'+esc(x.buyerUid)+'</td><td>'+esc(x.rating)+'/5</td><td>'+esc(x.comment)+'</td></tr>'))}
