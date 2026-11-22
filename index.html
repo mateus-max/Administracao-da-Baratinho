@@ -70,27 +70,33 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
  .products-panel{padding:9px}.product-filters{grid-template-columns:1fr}.product-filters input{grid-column:auto}.products-pagination{align-items:flex-start;flex-direction:column;font-size:11px}.products-pagination>div{width:100%;justify-content:space-between}
 }
 
-/* Modal de detalhes do produto */
-.product-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(8,24,46,.62);backdrop-filter:blur(4px)}
-.product-modal-card{width:min(680px,100%);max-height:min(88dvh,850px);overflow:auto;background:#fff;border:1px solid #e1eaf7;border-radius:20px;box-shadow:0 24px 80px #071a3450}
-.product-modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
+/* Modal de detalhes do produto — versão refinada */
+.product-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(8,24,46,.66);backdrop-filter:blur(5px)}
+.product-modal-card{display:flex;flex-direction:column;width:min(820px,100%);height:min(88dvh,900px);overflow:hidden;background:#fff;border:1px solid #e1eaf7;border-radius:20px;box-shadow:0 24px 80px #071a3450}
+.product-modal-head{position:sticky;top:0;z-index:2;flex:none;display:flex;justify-content:space-between;align-items:center;padding:17px 22px;background:#fff;border-bottom:1px solid var(--line)}
 .product-modal-head h2{margin:0;color:var(--navy);font-size:19px}
-.product-modal-close{width:36px;height:36px;border:0;border-radius:10px;background:#edf2f8;color:var(--navy);font-size:22px}
-.product-modal-body{padding:22px}
-.product-modal-hero{display:grid;grid-template-columns:190px 1fr;gap:22px;align-items:center}
-.product-modal-image{width:100%;height:175px;object-fit:contain;background:#f4f7fb;border:1px solid #e7edf5;border-radius:14px}
+.product-modal-close{width:38px;height:38px;border:0;border-radius:10px;background:#edf2f8;color:var(--navy);font-size:23px;cursor:pointer}
+.product-modal-body{padding:22px;overflow-y:auto;overscroll-behavior:contain;flex:1;min-height:0}
+.product-modal-hero{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:center}
+.product-modal-image{width:100%;height:190px;object-fit:contain;background:#f4f7fb;border:1px solid #e7edf5;border-radius:14px;cursor:zoom-in}
 .product-modal-placeholder{display:grid;place-items:center;color:#8090a5;font-size:55px}
-.product-modal-name{font-size:25px;line-height:1.2;margin:0 0 10px;color:var(--ink)}
-.product-modal-price{font-size:27px;font-weight:850;color:var(--navy);margin:0 0 10px}
+.product-modal-name{font-size:27px;line-height:1.2;margin:12px 0 9px;color:var(--ink)}
+.product-modal-price{font-size:29px;font-weight:850;color:var(--navy);margin:0 0 10px}
 .product-modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px}
-.product-modal-field{padding:12px;background:#f6f8fb;border:1px solid #e8edf4;border-radius:11px;min-width:0}
-.product-modal-field small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+.product-modal-field{padding:13px;background:#f6f8fb;border:1px solid #e8edf4;border-radius:11px;min-width:0}
+.product-modal-field small{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
 .product-modal-field strong{display:block;color:var(--ink);font-size:13px;overflow-wrap:anywhere}
-.product-modal-description{margin-top:14px;padding:14px;background:#f6f8fb;border-radius:11px}
-.product-modal-description small{display:block;color:var(--muted);margin-bottom:6px}
-.product-modal-description p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
-.product-modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:16px 22px;border-top:1px solid var(--line)}
-@media(max-width:560px){.product-modal{padding:10px;align-items:end}.product-modal-card{max-height:90dvh;border-radius:18px 18px 12px 12px}.product-modal-body{padding:15px}.product-modal-hero{grid-template-columns:105px 1fr;gap:13px}.product-modal-image{height:115px}.product-modal-name{font-size:19px}.product-modal-price{font-size:21px}.product-modal-grid{gap:7px}.product-modal-field{padding:10px}.product-modal-actions{padding:12px 15px}.product-modal-actions .btn{flex:1}}
+.product-modal-section-title{margin:22px 0 10px;color:var(--navy);font-size:14px;font-weight:800}
+.product-modal-description{margin-top:14px;padding:15px;background:#f6f8fb;border:1px solid #e8edf4;border-radius:11px}
+.product-modal-description small{display:block;color:var(--muted);margin-bottom:7px}
+.product-modal-description p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.product-modal-actions{position:sticky;bottom:0;z-index:2;flex:none;display:flex;justify-content:space-between;align-items:center;gap:9px;padding:14px 22px;background:#fff;border-top:1px solid var(--line)}
+.product-modal-action-group{display:flex;gap:8px;flex-wrap:wrap}
+.product-modal-actions button{cursor:pointer}
+.product-modal-zoom{position:fixed;inset:0;z-index:1010;display:grid;place-items:center;padding:25px;background:rgba(0,0,0,.9)}
+.product-modal-zoom img{max-width:95vw;max-height:88dvh;object-fit:contain}
+.product-modal-zoom button{position:absolute;top:18px;right:20px;width:42px;height:42px;border:0;border-radius:50%;font-size:26px;background:#fff;color:#142b4e}
+@media(max-width:560px){.product-modal{padding:8px;place-items:end center}.product-modal-card{height:92dvh;max-height:92dvh;border-radius:18px 18px 10px 10px}.product-modal-head{padding:13px 15px}.product-modal-body{padding:14px}.product-modal-hero{grid-template-columns:112px 1fr;gap:13px}.product-modal-image{height:118px}.product-modal-name{font-size:19px;margin:8px 0}.product-modal-price{font-size:21px}.product-modal-grid{gap:7px;margin-top:14px}.product-modal-field{padding:10px}.product-modal-actions{padding:11px 13px;align-items:stretch;flex-direction:column}.product-modal-action-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.product-modal-actions .btn{flex:1;font-size:12px;padding:10px 8px}.product-modal-actions>.btn{width:100%}}
 
 </style></head>
 <body>
@@ -216,39 +222,47 @@ catch(e){c.innerHTML=title("Falha ao carregar","Verifique as regras de acesso do
 
 function showProductDetails(id,x){
  const seller=x.sellerName||cache.sellers?.[x.sellerUid]?.name||cache.sellers?.[x.sellerUid]?.profile?.name||cache.users?.[x.sellerUid]?.name||"Vendedor";
+ const sellerPhone=x.sellerPhone||cache.sellers?.[x.sellerUid]?.phone||cache.sellers?.[x.sellerUid]?.profile?.phone||cache.users?.[x.sellerUid]?.phone||"Não indicado";
  const location=[x.municipality,x.province].filter(Boolean).join(", ")||x.location||"Não indicada";
  const category=x.categoryName||cache.categories?.[x.categoryId]?.name||x.category||"Não indicada";
  const imageUrl=x.imageUrl||x.image||x.photo||x.thumbnail||(Array.isArray(x.images)?x.images[0]:"");
  const status=String(x.status||"Não indicado");
+ const dateValue=v=>{if(!v)return "Não indicada";const d=new Date(v);return Number.isNaN(d.getTime())?"Não indicada":d.toLocaleString("pt-AO")};
+ const field=v=>esc(String(v??"Não indicado"));
+ const stock=x.stock??x.quantity??x.inventory??"Não indicado";
  const modal=document.createElement("div");modal.className="product-modal";modal.setAttribute("role","presentation");
- modal.innerHTML='<section class="product-modal-card" role="dialog" aria-modal="true" aria-labelledby="productModalTitle"><header class="product-modal-head"><h2 id="productModalTitle">Detalhes do produto</h2><button class="product-modal-close" type="button" aria-label="Fechar">×</button></header><div class="product-modal-body"><div class="product-modal-hero"><div class="product-modal-visual"></div><div><span class="pill '+(["active","approved"].includes(status.toLowerCase())?"green":(["inactive","blocked","rejected"].includes(status.toLowerCase())?"red":"") )+'">'+esc(status)+'</span><h3 class="product-modal-name">'+esc(x.title||x.name||"Produto sem nome")+'</h3><p class="product-modal-price">'+esc(money(x.price))+'</p></div></div><div class="product-modal-grid"><div class="product-modal-field"><small>Vendedor</small><strong>'+esc(seller)+'</strong></div><div class="product-modal-field"><small>Localização</small><strong>'+esc(location)+'</strong></div><div class="product-modal-field"><small>Categoria</small><strong>'+esc(category)+'</strong></div><div class="product-modal-field"><small>Identificador</small><strong>'+esc(id)+'</strong></div></div><div class="product-modal-description"><small>Descrição</small><p>'+esc(x.description||"Sem descrição disponível.")+'</p></div></div><footer class="product-modal-actions"><button class="btn outline modal-close" type="button">Fechar</button><button class="btn primary modal-edit" type="button">Editar produto</button></footer></section>';
+ const active=["active","approved"].includes(status.toLowerCase());
+ const statusClass=active?"green":(["inactive","blocked","rejected","suspended"].includes(status.toLowerCase())?"red":"");
+ modal.innerHTML='<section class="product-modal-card" role="dialog" aria-modal="true" aria-labelledby="productModalTitle"><header class="product-modal-head"><h2 id="productModalTitle">Detalhes do produto</h2><button class="product-modal-close" type="button" aria-label="Fechar">×</button></header><div class="product-modal-body"><div class="product-modal-hero"><div class="product-modal-visual"></div><div><span class="pill '+statusClass+'">'+field(status)+'</span><h3 class="product-modal-name">'+field(x.title||x.name||"Produto sem nome")+'</h3><p class="product-modal-price">'+field(money(x.price))+'</p></div></div><div class="product-modal-grid"><div class="product-modal-field"><small>Vendedor</small><strong>'+field(seller)+'</strong></div><div class="product-modal-field"><small>Contacto do vendedor</small><strong>'+field(sellerPhone)+'</strong></div><div class="product-modal-field"><small>Localização</small><strong>'+field(location)+'</strong></div><div class="product-modal-field"><small>Categoria</small><strong>'+field(category)+'</strong></div><div class="product-modal-field"><small>Stock / Quantidade</small><strong>'+field(stock)+'</strong></div><div class="product-modal-field"><small>Identificador</small><strong>'+field(id)+'</strong></div></div><div class="product-modal-description"><small>Descrição</small><p>'+field(x.description||"Sem descrição disponível.")+'</p></div><h3 class="product-modal-section-title">Informações da publicação</h3><div class="product-modal-grid"><div class="product-modal-field"><small>Data de publicação</small><strong>'+field(dateValue(x.createdAt||x.publishedAt||x.dateCreated))+'</strong></div><div class="product-modal-field"><small>Última actualização</small><strong>'+field(dateValue(x.updatedAt||x.modifiedAt))+'</strong></div><div class="product-modal-field"><small>Estado de moderação</small><strong>'+field(x.moderationStatus||x.status||"Não indicado")+'</strong></div><div class="product-modal-field"><small>País do vendedor</small><strong>'+field(x.sellerCountry||cache.sellers?.[x.sellerUid]?.country||"Não indicado")+'</strong></div></div></div><footer class="product-modal-actions"><button class="btn outline modal-close" type="button">Fechar</button><div class="product-modal-action-group"><button class="btn outline modal-edit" type="button">Editar</button><button class="btn primary modal-toggle" type="button">'+(active?"Desactivar":"Activar")+'</button><button class="btn outline modal-delete" type="button">Eliminar</button></div></footer></section>';
  const visual=modal.querySelector(".product-modal-visual");
- if(imageUrl){const img=document.createElement("img");img.className="product-modal-image";img.alt=x.title||x.name||"Imagem do produto";img.src=imageUrl;img.onerror=()=>{visual.innerHTML='<div class="product-modal-image product-modal-placeholder">▧</div>'};visual.appendChild(img)}
+ const openZoom=src=>{const zoom=document.createElement("div");zoom.className="product-modal-zoom";zoom.innerHTML='<button type="button" aria-label="Fechar imagem">×</button><img alt="Imagem ampliada do produto">';zoom.querySelector("img").src=src;zoom.onclick=e=>{if(e.target===zoom||e.target.tagName==="BUTTON")zoom.remove()};modal.appendChild(zoom)};
+ if(imageUrl){const img=document.createElement("img");img.className="product-modal-image";img.alt=x.title||x.name||"Imagem do produto";img.src=imageUrl;img.onclick=()=>openZoom(imageUrl);img.onerror=()=>{visual.innerHTML='<div class="product-modal-image product-modal-placeholder">▧</div>'};visual.appendChild(img)}
  else visual.innerHTML='<div class="product-modal-image product-modal-placeholder">▧</div>';
  const close=()=>{document.removeEventListener("keydown",onKey);modal.remove()};
- const onKey=e=>{if(e.key==="Escape")close()};
+ const onKey=e=>{if(e.key==="Escape"){const zoom=modal.querySelector(".product-modal-zoom");if(zoom)zoom.remove();else close()}};
  modal.querySelector(".product-modal-close").onclick=close;modal.querySelector(".modal-close").onclick=close;
  modal.querySelector(".modal-edit").onclick=()=>{close();act("editProduct",id)};
+ modal.querySelector(".modal-toggle").onclick=async()=>{const ok=await act(active?"deactivateProduct":"activateProduct",id);if(ok)close()};
+ modal.querySelector(".modal-delete").onclick=async()=>{const ok=await act("deleteProduct",id);if(ok)close()};
  modal.addEventListener("click",e=>{if(e.target===modal)close()});
- document.addEventListener("keydown",onKey);document.body.appendChild(modal);
- modal.querySelector(".product-modal-close").focus();
+ document.addEventListener("keydown",onKey);document.body.appendChild(modal);modal.querySelector(".product-modal-close").focus();
 }
 
 async function write(path,value){await set(ref(db,path),value)}
 async function act(a,id){const ask=async q=>confirm(q);if(a==="user"){await render("users");return}if(a==="approveUser"&&await ask("Aprovar esta conta e permitir acesso ao painel?")){await update(ref(db,"users/"+id),{status:"active",approvalStatus:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid});if(cache.sellers?.[id])await update(ref(db,"sellers/"+id),{status:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid})}else if(a==="rejectUser"&&await ask("Rejeitar este pedido de acesso?")){await update(ref(db,"users/"+id),{status:"rejected",approvalStatus:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid});if(cache.sellers?.[id])await update(ref(db,"sellers/"+id),{status:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid})}if(a==="approveSeller"&&await ask("Aprovar este vendedor e libertar o acesso à conta?")){await update(ref(db,"sellers/"+id),{status:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid});await update(ref(db,"sellers/"+id+"/application"),{status:"approved"});await update(ref(db,"users/"+id),{status:"active",approvalStatus:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid})}
 else if(a==="rejectSeller"&&await ask("Rejeitar esta candidatura e bloquear o acesso?")){await update(ref(db,"sellers/"+id),{status:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid});await update(ref(db,"sellers/"+id+"/application"),{status:"rejected"});await update(ref(db,"users/"+id),{status:"rejected",approvalStatus:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid})}
 else if(a==="suspendSeller"&&await ask("Suspender esta loja?"))await update(ref(db,"sellers/"+id),{status:"suspended",updatedAt:Date.now(),updatedBy:adminUser.uid});
-else if(a==="activateProduct"&&await ask("Activar este produto?"))await update(ref(db,"products/"+id),{status:"active",moderatedAt:Date.now(),moderatedBy:adminUser.uid});
-else if(a==="deactivateProduct"&&await ask("Desactivar este produto?"))await update(ref(db,"products/"+id),{status:"inactive",moderatedAt:Date.now(),moderatedBy:adminUser.uid});
+else if(a==="activateProduct"){if(!await ask("Activar este produto?"))return false;await update(ref(db,"products/"+id),{status:"active",moderatedAt:Date.now(),moderatedBy:adminUser.uid})}
+else if(a==="deactivateProduct"){if(!await ask("Desactivar este produto?"))return false;await update(ref(db,"products/"+id),{status:"inactive",moderatedAt:Date.now(),moderatedBy:adminUser.uid})}
 else if(a==="viewProduct"){const x=cache.products?.[id]||{};showProductDetails(id,x)}
 else if(a==="editProduct"){const x=cache.products?.[id]||{};const name=prompt("Nome do produto:",x.title||x.name||"");if(name===null)return;const price=prompt("Preço (Kz):",x.price??"");if(price===null)return;if(!name.trim()||!Number.isFinite(Number(price))||Number(price)<0){alert("Nome ou preço inválido.");return}await update(ref(db,"products/"+id),{...(x.title!==undefined?{title:name.trim()}:{name:name.trim()}),price:Number(price),updatedAt:Date.now(),updatedBy:adminUser.uid})}
-else if(a==="deleteProduct"&&await ask("Eliminar definitivamente este produto? Esta acção não pode ser anulada.")){await remove(ref(db,"products/"+id))}
+else if(a==="deleteProduct"){if(!await ask("Eliminar definitivamente este produto? Esta acção não pode ser anulada."))return false;await remove(ref(db,"products/"+id))}
 else if(a==="orderReview")alert("Pedido seleccionado. A confirmação financeira e a libertação de fundos não são executadas por esta acção.");
 else if(a==="cancelOrder"&&await ask("Cancelar esta encomenda? Confirme que a política de reembolso foi cumprida."))await update(ref(db,"orders/"+id),{status:"cancelled",cancelledAt:Date.now(),cancelledBy:adminUser.uid});
 else if(a==="resolveComplaint"&&await ask("Marcar esta reclamação como resolvida?"))await update(ref(db,"complaints/"+id),{status:"resolved",resolvedAt:Date.now(),resolvedBy:adminUser.uid});
 else if(a==="investigateComplaint")await update(ref(db,"complaints/"+id),{status:"investigating",updatedAt:Date.now(),updatedBy:adminUser.uid});
 else if(a==="deleteCategory"&&await ask("Eliminar esta categoria?"))await remove(ref(db,"categories/"+id));
-await render(page)}
+await render(page);return true}
 function bind(){document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>act(b.dataset.act,b.dataset.id))}
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{render(b.dataset.page);closeMenu()});
 document.querySelectorAll("[data-bottom]").forEach(b=>b.onclick=()=>{render(b.dataset.bottom);closeMenu();document.querySelectorAll("[data-bottom]").forEach(x=>x.classList.toggle("active",x===b))});
