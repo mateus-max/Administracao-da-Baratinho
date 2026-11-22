@@ -201,6 +201,12 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .order-detail-foot{border-top:1px solid var(--line);border-bottom:0;justify-content:space-between;flex-wrap:wrap}.order-detail-foot>div{display:flex;gap:7px;flex-wrap:wrap}
 @media(max-width:900px){.orders-summary-expanded{grid-template-columns:repeat(3,minmax(0,1fr))}.order-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.orders-summary-expanded{grid-template-columns:repeat(2,minmax(0,1fr))}.orders-toolbar{grid-template-columns:1fr}.orders-toolbar input{grid-column:auto}.order-detail-modal{padding:7px;place-items:end center}.order-detail-card{width:100%;max-height:94dvh;border-radius:16px 16px 9px 9px}.order-detail-body{padding:11px}.order-detail-head,.order-detail-foot{padding:10px 12px}.order-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.order-detail-hero{align-items:flex-start;flex-direction:column}}
+/* Dashboard: actualização manual e dados complementares */
+.dashboard-refresh-group{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.dashboard-refresh-group .btn{padding:7px 11px;font-size:11px;border:1px solid #dce5f0}
+.dash-card>small{line-height:1.5}
+.dash-sub{max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:700px){.dashboard-refresh-group{width:100%;justify-content:space-between}.dashboard-refresh-group .btn{min-height:34px}}
 </style></head>
 <body>
 <section id="loginView" class="login">
@@ -270,29 +276,38 @@ if(p==="dashboard"){
  const pendingUsers=users.filter(([id,x])=>x.approvalStatus==="pending"||x.status==="pending");
  const openComplaints=complaints.filter(([id,x])=>!["resolved","closed"].includes(x.status)).length;
  const proofs=arr("paymentProofs");
- const pendingProofs=proofs.filter(([id,x])=>["submitted","pending","awaiting_review","under_review"].includes(String(x.status||"submitted").toLowerCase()));
+ const proofPendingStates=["submitted","pending","awaiting_review","under_review","awaiting_confirmation","pending_review","pending_confirmation"];
+ const pendingProofsBase=proofs.filter(([id,x])=>proofPendingStates.includes(String(x.status||"submitted").toLowerCase()));
+ const proofOrderRefs=new Set(pendingProofsBase.flatMap(([id,x])=>[x.orderId,x.order_id,x.orderKey,x.orderRef,x.orderReference].filter(Boolean).map(String)));
+ const awaitingConfirmationOrders=orders.filter(([id,x])=>["awaiting_confirmation","awaiting_review","under_review","pending_confirmation","payment_submitted","proof_submitted"].includes(String(x.paymentStatus||x.status||"").toLowerCase())&&!proofOrderRefs.has(String(id)));
+ const pendingProofCount=pendingProofsBase.length+awaitingConfirmationOrders.length;
  const paidOrders=orders.filter(([id,x])=>["paid","approved","processing","shipped","delivered","completed"].includes(String(x.paymentStatus||x.status||"").toLowerCase()));
  const totalPaid=paidOrders.reduce((sum,[id,x])=>sum+Number(x.total??x.totalAmount??x.amount??x.price??0),0);
  const pendingOrders=orders.filter(([id,x])=>["pending_payment","awaiting_payment","pending"].includes(String(x.paymentStatus||x.status||"").toLowerCase())).length;
  const recent=orders.slice().sort((a,b)=>Number(b[1].createdAt||b[1].created_at||b[1].timestamp||0)-Number(a[1].createdAt||a[1].created_at||a[1].timestamp||0)).slice(0,6);
- const dashboardStatus=v=>{const s=String(v||"pending").toLowerCase();return'<span class="dash-status '+(["paid","approved","delivered","completed"].includes(s)?"ok":["cancelled","rejected","failed"].includes(s)?"bad":"wait")+'">'+esc(({pending_payment:"Aguardando pagamento",awaiting_payment:"Aguardando pagamento",paid:"Pago",approved:"Aprovado",processing:"Em processamento",shipped:"Expedido",delivered:"Entregue",completed:"Concluído",cancelled:"Cancelado",rejected:"Rejeitado",failed:"Falhado"}[s]||s.replace(/_/g," ")))+'</span>'};
+ const dashboardStatus=v=>{const s=String(v||"pending").toLowerCase();return'<span class="dash-status '+(["paid","approved","delivered","completed"].includes(s)?"ok":["cancelled","canceled","rejected","failed"].includes(s)?"bad":"wait")+'">'+esc(({pending_payment:"Aguarda pagamento",awaiting_payment:"Aguarda pagamento",pending:"Pendente",awaiting_confirmation:"Comprovativo por analisar",awaiting_review:"Comprovativo por analisar",under_review:"Em análise",pending_confirmation:"Comprovativo por analisar",payment_submitted:"Comprovativo enviado",proof_submitted:"Comprovativo enviado",paid:"Pago",approved:"Aprovado",processing:"Em preparação",shipped:"Expedido",in_transit:"Em trânsito",delivered:"Entregue",completed:"Concluído",cancelled:"Cancelado",canceled:"Cancelado",rejected:"Rejeitado",failed:"Falhado"}[s]||s.replace(/_/g," ")))+'</span>'};
  const orderValue=x=>money(x.total??x.totalAmount??x.amount??x.price??0);
  const orderDate=x=>{const v=x.createdAt||x.created_at||x.timestamp||x.date;const d=v?new Date(typeof v==="number"&&v<1e12?v*1000:v):null;return d&&!isNaN(d)?d.toLocaleDateString("pt-AO"):"—"};
- const orderRows=recent.map(([id,o])=>'<tr><td><strong class="dash-ref">#'+esc(String(id).slice(-8).toUpperCase())+'</strong></td><td><div class="dash-product">'+esc(o.productName||o.title||o.productId||"Produto")+'</div><small class="dash-sub">'+esc(o.buyerName||o.customerName||o.buyer?.name||"Comprador")+'</small></td><td>'+orderDate(o)+'</td><td class="dash-value">'+orderValue(o)+'</td><td>'+dashboardStatus(o.paymentStatus||o.status)+'</td><td><button class="btn light dash-view" data-dashboard-orders>Ver encomendas</button></td></tr>');
+ const userMap=Object.fromEntries(users);
+ const productMap=Object.fromEntries(products);
+ const sellerMap=Object.fromEntries(sellers);
+ const orderBuyer=o=>{const uid=o.buyerUid||o.buyerId||o.userId||o.customerUid||o.customerId||o.uid;const u=userMap[uid]||{};const b=o.buyer&&typeof o.buyer==="object"?o.buyer:{};return o.buyerName||o.customerName||o.customer?.name||b.name||u.name||u.fullName||u.displayName||u.email||"Cliente não identificado"};
+ const orderProduct=o=>{const pid=o.productId||o.product_id||o.productKey;const p=productMap[pid]||{};return o.productName||o.title||o.product?.name||o.product?.title||p.name||p.title||p.productName||"Produto"};
+ const orderRows=recent.map(([id,o])=>{const sellerId=o.sellerUid||o.sellerId||o.vendorUid;const seller=sellerMap[sellerId]||{};const sellerLabel=o.sellerName||o.vendorName||seller.name||seller.profile?.name||"";return'<tr><td><strong class="dash-ref">#'+esc(String(id).slice(-8).toUpperCase())+'</strong></td><td><div class="dash-product">'+esc(orderProduct(o))+'</div><small class="dash-sub">'+esc(orderBuyer(o))+(sellerLabel?' · Vendedor: '+esc(sellerLabel):'')+'</small></td><td>'+orderDate(o)+'</td><td class="dash-value">'+orderValue(o)+'</td><td>'+dashboardStatus(o.paymentStatus||o.status)+'</td><td><button class="btn light dash-view" data-dashboard-orders>Ver encomendas</button></td></tr>'});
  c.innerHTML=title("Visão geral","Acompanhe os principais indicadores e a actividade do Baratinho de Angola.")+
- '<div class="dashboard-topline"><div><span class="dash-live-dot"></span> Dados sincronizados com a plataforma</div><span>Actualizado: '+new Date().toLocaleString("pt-AO",{dateStyle:"short",timeStyle:"short"})+'</span></div>'+
+ '<div class="dashboard-topline"><div><span class="dash-live-dot"></span> Dados carregados do Firebase Realtime Database</div><div class="dashboard-refresh-group"><span>Actualizado: '+new Date().toLocaleString("pt-AO",{dateStyle:"short",timeStyle:"short"})+'</span><button class="btn light" id="dashRefresh" type="button">↻ Actualizar</button></div></div>'+
  '<section class="dashboard-metrics">'+
  '<article class="dash-card"><div class="dash-card-top"><span class="dash-icon users">♙</span><span class="dash-label">Utilizadores</span></div><strong>'+users.length+'</strong><small>Contas registadas</small></article>'+
  '<article class="dash-card"><div class="dash-card-top"><span class="dash-icon sellers">▣</span><span class="dash-label">Vendedores</span></div><strong>'+sellers.length+'</strong><small>'+pending+' candidaturas por analisar</small></article>'+
  '<article class="dash-card"><div class="dash-card-top"><span class="dash-icon products">◇</span><span class="dash-label">Produtos</span></div><strong>'+products.length+'</strong><small>Publicações na plataforma</small></article>'+
- '<article class="dash-card"><div class="dash-card-top"><span class="dash-icon orders">▤</span><span class="dash-label">Encomendas</span></div><strong>'+orders.length+'</strong><small>'+pendingOrders+' aguardam pagamento</small></article>'+
+ '<article class="dash-card"><div class="dash-card-top"><span class="dash-icon orders">▤</span><span class="dash-label">Encomendas</span></div><strong>'+orders.length+'</strong><small>'+pendingOrders+' aguardam pagamento · '+pendingProofCount+' comprovativo(s) por analisar</small></article>'+
  '</section>'+
  '<section class="dashboard-secondary">'+
  '<article class="dash-panel dash-finance"><div class="dash-panel-heading"><div><h3>Pagamentos confirmados</h3><p>Valores associados a encomendas com estado pago ou aprovado</p></div><span class="dash-icon finance">₭</span></div><strong class="dash-money">'+money(totalPaid)+'</strong><div class="dash-finance-foot"><span>'+paidOrders.length+' encomenda(s) pagas/aprovadas</span><button class="btn light" id="dashPayments">Consultar pagamentos</button></div></article>'+
  '<article class="dash-panel"><div class="dash-panel-heading"><div><h3>Pendências que exigem atenção</h3><p>Itens que aguardam intervenção da Direcção</p></div><span class="dash-alert-icon">!</span></div>'+
  '<button class="dash-queue-row" id="dashUsers"><span><i class="queue-dot amber"></i>Contas por analisar</span><strong>'+pendingUsers.length+' <b>›</b></strong></button>'+
  '<button class="dash-queue-row" id="dashSellers"><span><i class="queue-dot blue"></i>Candidaturas de vendedores</span><strong>'+pending+' <b>›</b></strong></button>'+
- '<button class="dash-queue-row" id="dashProofs"><span><i class="queue-dot green"></i>Comprovativos por analisar</span><strong>'+pendingProofs.length+' <b>›</b></strong></button>'+
+ '<button class="dash-queue-row" id="dashProofs"><span><i class="queue-dot green"></i>Comprovativos por analisar</span><strong>'+pendingProofCount+' <b>›</b></strong></button>'+
  '<button class="dash-queue-row" id="dashComplaints"><span><i class="queue-dot red"></i>Reclamações abertas</span><strong>'+openComplaints+' <b>›</b></strong></button></article>'+
  '</section>'+
  '<section class="dash-panel dash-recent"><div class="dash-panel-heading"><div><h3>Encomendas recentes</h3><p>Últimas movimentações registadas na plataforma</p></div><button class="btn light" id="dashAllOrders">Ver todas</button></div>'+
@@ -303,7 +318,7 @@ if(p==="dashboard"){
  '<button class="dash-shortcut" id="quickReports"><span>₭</span><div><strong>Pagamentos</strong><small>Verificar comprovativos</small></div><b>›</b></button>'+
  '<button class="dash-shortcut" id="quickSettings"><span>⚙</span><div><strong>Configurações</strong><small>Definições da plataforma</small></div><b>›</b></button></section>'+
  '<div class="dash-footnote">Os valores financeiros são apresentados com base nos registos disponíveis. A confirmação de pagamentos continua a depender da verificação efectiva da entrada do dinheiro pela Direcção.</div>';
- $("dashUsers").onclick=()=>render("users");$("dashSellers").onclick=()=>render("sellers");$("dashProofs").onclick=()=>render("payments");$("dashComplaints").onclick=()=>render("complaints");$("dashPayments").onclick=()=>render("payments");$("dashAllOrders").onclick=()=>render("orders");$("dashOrders")?.addEventListener("click",()=>render("orders"));
+ $("dashRefresh").onclick=()=>render("dashboard");$("dashUsers").onclick=()=>render("users");$("dashSellers").onclick=()=>render("sellers");$("dashProofs").onclick=()=>render("payments");$("dashComplaints").onclick=()=>render("complaints");$("dashPayments").onclick=()=>render("payments");$("dashAllOrders").onclick=()=>render("orders");$("dashOrders")?.addEventListener("click",()=>render("orders"));
  document.querySelectorAll("[data-dashboard-orders]").forEach(b=>b.onclick=()=>render("orders"));
  $("quickSellers").onclick=()=>render("sellers");$("quickCategories").onclick=()=>render("categories");$("quickReports").onclick=()=>render("payments");$("quickSettings").onclick=()=>render("settings");
 }
