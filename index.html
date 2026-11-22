@@ -124,6 +124,13 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
 .orders-actions .btn{padding:7px 9px;font-size:11px;min-height:32px}
 .orders-empty{text-align:center!important;padding:32px!important;color:var(--muted)!important}
 @media(max-width:760px){.orders-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}.orders-stat{padding:10px}.orders-stat span{font-size:10px;line-height:1.25}.orders-stat strong{font-size:20px}.orders-panel-head{padding:13px}.orders-table{min-width:760px}.orders-table th,.orders-table td{padding:10px}.orders-panel{border-radius:12px}}
+
+.orders-table th:nth-child(4){min-width:185px}
+.order-product-cell{display:flex;align-items:center;gap:9px;min-width:155px}
+.order-product-thumb,.order-product-placeholder{width:46px;height:42px;flex:0 0 46px;object-fit:contain;border:1px solid #e5ebf3;border-radius:8px;background:#fff}
+.order-product-placeholder{display:grid;place-items:center;color:#8493a8;font-size:20px;background:#f1f5fa}
+.order-product{font-weight:700;color:#172d4c;line-height:1.3}
+@media(max-width:760px){.order-product-thumb,.order-product-placeholder{width:40px;height:38px;flex-basis:40px}.order-product-cell{min-width:140px;gap:7px}}
 </style></head>
 <body>
 <section id="loginView" class="login">
@@ -241,13 +248,25 @@ else if(p==="orders"){
  const shortUid=v=>{const s=String(v||"");return s.length>13?s.slice(0,7)+"…"+s.slice(-3):(s||"—")};
  const buyerName=uid=>{const u=cache.users?.[uid];return u?.name||u?.displayName||shortUid(uid)};
  const sellerName=uid=>{const s=cache.sellers?.[uid];return s?.name||s?.profile?.name||cache.users?.[uid]?.name||shortUid(uid)};
- const productName=x=>x.productName||cache.products?.[x.productId]?.title||cache.products?.[x.productId]?.name||x.productId||"—";
+ const linkedProduct=x=>{
+  const products=cache.products||{};
+  const pid=x.productId||x.product_id||x.productKey||"";
+  if(pid&&products[pid])return products[pid];
+  const entries=Object.entries(products);
+  return entries.find(([key,p])=>key===x.productId||p.id===pid||p.productId===pid)?.[1]||{};
+ };
+ const productName=x=>x.productName||linkedProduct(x).title||linkedProduct(x).name||x.productId||"Produto";
+ const productThumb=x=>{
+  const p=linkedProduct(x);
+  const src=x.productImage||x.imageUrl||x.image||p.imageUrl||p.image||p.photo||p.thumbnail||(Array.isArray(p.images)?p.images[0]:"");
+  return src?'<img class="order-product-thumb" src="'+esc(src)+'" alt="'+esc(productName(x))+'" loading="lazy" onerror="this.outerHTML=\'<span class=&quot;order-product-placeholder&quot;>▧</span>\'">':'<span class="order-product-placeholder">▧</span>';
+ };
  const statusLabel=v=>({"pending_payment":"Aguarda pagamento","pending":"Pendente","paid":"Pago","processing":"Em preparação","shipped":"Expedido","in_transit":"Em trânsito","delivered":"Entregue","cancelled":"Cancelada"}[v]||v||"Pendente");
  c.innerHTML=title("Encomendas","Acompanhe os pedidos, pagamentos e entregas.")+
  '<div class="orders-summary"><div class="orders-stat"><span>Total de encomendas</span><strong>'+orders.length+'</strong></div><div class="orders-stat waiting"><span>Aguardam pagamento</span><strong>'+awaiting+'</strong></div><div class="orders-stat completed"><span>Pagas / em processamento</span><strong>'+paid+'</strong></div></div>'+
  '<div class="panel orders-panel"><div class="orders-panel-head"><div><h3>Registos de encomendas</h3><p>Informações essenciais e acções de gestão</p></div><span class="orders-count">'+orders.length+' registo(s)</span></div>'+
  '<div class="orders-table-scroll"><table class="orders-table"><thead><tr><th>Referência</th><th>Comprador</th><th>Vendedor</th><th>Produto</th><th>Total</th><th>Estado</th><th>Acções</th></tr></thead><tbody>'+
- (orders.length?orders.map(([id,x])=>'<tr><td><span class="order-ref">#'+esc(id.slice(-8).toUpperCase())+'</span></td><td>'+esc(buyerName(x.buyerUid))+'</td><td>'+esc(sellerName(x.sellerUid))+'</td><td><span class="order-product">'+esc(productName(x))+'</span></td><td class="order-total">'+money(x.total??x.unitPrice??0)+'</td><td><span class="order-status '+(["paid","delivered","completed"].includes(x.status)?"ok":["cancelled","rejected","failed"].includes(x.status)?"bad":"pending")+'">'+esc(statusLabel(x.status))+'</span></td><td><div class="orders-actions">'+action("Analisar","orderReview",id,"light")+action("Cancelar","cancelOrder",id,"danger")+'</div></td></tr>').join(""):'<tr><td colspan="7" class="orders-empty">Ainda não existem encomendas registadas.</td></tr>')+
+ (orders.length?orders.map(([id,x])=>'<tr><td><span class="order-ref">#'+esc(id.slice(-8).toUpperCase())+'</span></td><td>'+esc(buyerName(x.buyerUid))+'</td><td>'+esc(sellerName(x.sellerUid))+'</td><td><div class="order-product-cell">'+productThumb(x)+'<span class="order-product">'+esc(productName(x))+'</span></div></td><td class="order-total">'+money(x.total??x.unitPrice??0)+'</td><td><span class="order-status '+(["paid","delivered","completed"].includes(x.status)?"ok":["cancelled","rejected","failed"].includes(x.status)?"bad":"pending")+'">'+esc(statusLabel(x.status))+'</span></td><td><div class="orders-actions">'+action("Analisar","orderReview",id,"light")+action("Cancelar","cancelOrder",id,"danger")+'</div></td></tr>').join(""):'<tr><td colspan="7" class="orders-empty">Ainda não existem encomendas registadas.</td></tr>')+
  '</tbody></table></div></div>';
 }
 else if(p==="payments"){c.innerHTML=title("Pagamentos","Consulta de registos de pagamento e respectivos estados.")+'<div class="notice">Não marque um pagamento como liquidado apenas com base no pedido do comprador ou vendedor. A confirmação deverá vir do prestador financeiro autorizado, por integração autenticada.</div>'+table(["Pagamento","Encomenda","Comprador","Valor","Estado","Data"],payments.map(([id,x])=>'<tr><td>'+esc(id)+'</td><td>'+esc(x.orderId)+'</td><td>'+esc(x.buyerUid)+'</td><td>'+money(x.amount)+'</td><td>'+pill(x.status)+'</td><td>'+esc(x.createdAt?new Date(x.createdAt).toLocaleString("pt-AO"):"—")+'</td></tr>'))}
