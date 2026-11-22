@@ -69,6 +69,29 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}
  .product-stat{min-height:82px;padding:9px;gap:7px}.metric-icon{width:35px;height:35px;flex-basis:35px;font-size:18px}.product-stat strong{font-size:20px}.product-stat small{font-size:10px}.product-stat em{font-size:9px}
  .products-panel{padding:9px}.product-filters{grid-template-columns:1fr}.product-filters input{grid-column:auto}.products-pagination{align-items:flex-start;flex-direction:column;font-size:11px}.products-pagination>div{width:100%;justify-content:space-between}
 }
+
+/* Modal de detalhes do produto */
+.product-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(8,24,46,.62);backdrop-filter:blur(4px)}
+.product-modal-card{width:min(680px,100%);max-height:min(88dvh,850px);overflow:auto;background:#fff;border:1px solid #e1eaf7;border-radius:20px;box-shadow:0 24px 80px #071a3450}
+.product-modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
+.product-modal-head h2{margin:0;color:var(--navy);font-size:19px}
+.product-modal-close{width:36px;height:36px;border:0;border-radius:10px;background:#edf2f8;color:var(--navy);font-size:22px}
+.product-modal-body{padding:22px}
+.product-modal-hero{display:grid;grid-template-columns:190px 1fr;gap:22px;align-items:center}
+.product-modal-image{width:100%;height:175px;object-fit:contain;background:#f4f7fb;border:1px solid #e7edf5;border-radius:14px}
+.product-modal-placeholder{display:grid;place-items:center;color:#8090a5;font-size:55px}
+.product-modal-name{font-size:25px;line-height:1.2;margin:0 0 10px;color:var(--ink)}
+.product-modal-price{font-size:27px;font-weight:850;color:var(--navy);margin:0 0 10px}
+.product-modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:20px}
+.product-modal-field{padding:12px;background:#f6f8fb;border:1px solid #e8edf4;border-radius:11px;min-width:0}
+.product-modal-field small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}
+.product-modal-field strong{display:block;color:var(--ink);font-size:13px;overflow-wrap:anywhere}
+.product-modal-description{margin-top:14px;padding:14px;background:#f6f8fb;border-radius:11px}
+.product-modal-description small{display:block;color:var(--muted);margin-bottom:6px}
+.product-modal-description p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.product-modal-actions{display:flex;justify-content:flex-end;gap:9px;padding:16px 22px;border-top:1px solid var(--line)}
+@media(max-width:560px){.product-modal{padding:10px;align-items:end}.product-modal-card{max-height:90dvh;border-radius:18px 18px 12px 12px}.product-modal-body{padding:15px}.product-modal-hero{grid-template-columns:105px 1fr;gap:13px}.product-modal-image{height:115px}.product-modal-name{font-size:19px}.product-modal-price{font-size:21px}.product-modal-grid{gap:7px}.product-modal-field{padding:10px}.product-modal-actions{padding:12px 15px}.product-modal-actions .btn{flex:1}}
+
 </style></head>
 <body>
 <section id="loginView" class="login">
@@ -190,13 +213,34 @@ else if(p==="settings"){const st=cache.settings||{};c.innerHTML=title("Configura
 else if(p==="audit"){const logs=arr("auditLogs");c.innerHTML=title("Auditoria","Histórico de operações registadas no sistema.")+table(["Operação","Utilizador","Detalhes","Data"],logs.slice(-100).reverse().map(([id,x])=>'<tr><td>'+esc(x.action)+'</td><td>'+esc(x.actorUid)+'</td><td>'+esc(x.details)+'</td><td>'+esc(x.createdAt?new Date(x.createdAt).toLocaleString("pt-AO"):"—")+'</td></tr>'))}
 bind()}
 catch(e){c.innerHTML=title("Falha ao carregar","Verifique as regras de acesso do Realtime Database.")+'<div class="msg error">'+esc(errText(e))+'</div>'}}
+
+function showProductDetails(id,x){
+ const seller=x.sellerName||cache.sellers?.[x.sellerUid]?.name||cache.sellers?.[x.sellerUid]?.profile?.name||cache.users?.[x.sellerUid]?.name||"Vendedor";
+ const location=[x.municipality,x.province].filter(Boolean).join(", ")||x.location||"Não indicada";
+ const category=x.categoryName||cache.categories?.[x.categoryId]?.name||x.category||"Não indicada";
+ const imageUrl=x.imageUrl||x.image||x.photo||x.thumbnail||(Array.isArray(x.images)?x.images[0]:"");
+ const status=String(x.status||"Não indicado");
+ const modal=document.createElement("div");modal.className="product-modal";modal.setAttribute("role","presentation");
+ modal.innerHTML='<section class="product-modal-card" role="dialog" aria-modal="true" aria-labelledby="productModalTitle"><header class="product-modal-head"><h2 id="productModalTitle">Detalhes do produto</h2><button class="product-modal-close" type="button" aria-label="Fechar">×</button></header><div class="product-modal-body"><div class="product-modal-hero"><div class="product-modal-visual"></div><div><span class="pill '+(["active","approved"].includes(status.toLowerCase())?"green":(["inactive","blocked","rejected"].includes(status.toLowerCase())?"red":"") )+'">'+esc(status)+'</span><h3 class="product-modal-name">'+esc(x.title||x.name||"Produto sem nome")+'</h3><p class="product-modal-price">'+esc(money(x.price))+'</p></div></div><div class="product-modal-grid"><div class="product-modal-field"><small>Vendedor</small><strong>'+esc(seller)+'</strong></div><div class="product-modal-field"><small>Localização</small><strong>'+esc(location)+'</strong></div><div class="product-modal-field"><small>Categoria</small><strong>'+esc(category)+'</strong></div><div class="product-modal-field"><small>Identificador</small><strong>'+esc(id)+'</strong></div></div><div class="product-modal-description"><small>Descrição</small><p>'+esc(x.description||"Sem descrição disponível.")+'</p></div></div><footer class="product-modal-actions"><button class="btn outline modal-close" type="button">Fechar</button><button class="btn primary modal-edit" type="button">Editar produto</button></footer></section>';
+ const visual=modal.querySelector(".product-modal-visual");
+ if(imageUrl){const img=document.createElement("img");img.className="product-modal-image";img.alt=x.title||x.name||"Imagem do produto";img.src=imageUrl;img.onerror=()=>{visual.innerHTML='<div class="product-modal-image product-modal-placeholder">▧</div>'};visual.appendChild(img)}
+ else visual.innerHTML='<div class="product-modal-image product-modal-placeholder">▧</div>';
+ const close=()=>{document.removeEventListener("keydown",onKey);modal.remove()};
+ const onKey=e=>{if(e.key==="Escape")close()};
+ modal.querySelector(".product-modal-close").onclick=close;modal.querySelector(".modal-close").onclick=close;
+ modal.querySelector(".modal-edit").onclick=()=>{close();act("editProduct",id)};
+ modal.addEventListener("click",e=>{if(e.target===modal)close()});
+ document.addEventListener("keydown",onKey);document.body.appendChild(modal);
+ modal.querySelector(".product-modal-close").focus();
+}
+
 async function write(path,value){await set(ref(db,path),value)}
 async function act(a,id){const ask=async q=>confirm(q);if(a==="user"){await render("users");return}if(a==="approveUser"&&await ask("Aprovar esta conta e permitir acesso ao painel?")){await update(ref(db,"users/"+id),{status:"active",approvalStatus:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid});if(cache.sellers?.[id])await update(ref(db,"sellers/"+id),{status:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid})}else if(a==="rejectUser"&&await ask("Rejeitar este pedido de acesso?")){await update(ref(db,"users/"+id),{status:"rejected",approvalStatus:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid});if(cache.sellers?.[id])await update(ref(db,"sellers/"+id),{status:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid})}if(a==="approveSeller"&&await ask("Aprovar este vendedor e libertar o acesso à conta?")){await update(ref(db,"sellers/"+id),{status:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid});await update(ref(db,"sellers/"+id+"/application"),{status:"approved"});await update(ref(db,"users/"+id),{status:"active",approvalStatus:"approved",approvedAt:Date.now(),approvedBy:adminUser.uid})}
 else if(a==="rejectSeller"&&await ask("Rejeitar esta candidatura e bloquear o acesso?")){await update(ref(db,"sellers/"+id),{status:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid});await update(ref(db,"sellers/"+id+"/application"),{status:"rejected"});await update(ref(db,"users/"+id),{status:"rejected",approvalStatus:"rejected",reviewedAt:Date.now(),reviewedBy:adminUser.uid})}
 else if(a==="suspendSeller"&&await ask("Suspender esta loja?"))await update(ref(db,"sellers/"+id),{status:"suspended",updatedAt:Date.now(),updatedBy:adminUser.uid});
 else if(a==="activateProduct"&&await ask("Activar este produto?"))await update(ref(db,"products/"+id),{status:"active",moderatedAt:Date.now(),moderatedBy:adminUser.uid});
 else if(a==="deactivateProduct"&&await ask("Desactivar este produto?"))await update(ref(db,"products/"+id),{status:"inactive",moderatedAt:Date.now(),moderatedBy:adminUser.uid});
-else if(a==="viewProduct"){const x=cache.products?.[id]||{};alert("Produto: "+(x.title||x.name||"—")+"\\nPreço: "+money(x.price)+"\\nVendedor: "+(x.sellerName||cache.sellers?.[x.sellerUid]?.name||cache.sellers?.[x.sellerUid]?.profile?.name||cache.users?.[x.sellerUid]?.name||"Vendedor"||"—")+"\\nEstado: "+(x.status||"—")+"\\nDescrição: "+(x.description||"Sem descrição"))}
+else if(a==="viewProduct"){const x=cache.products?.[id]||{};showProductDetails(id,x)}
 else if(a==="editProduct"){const x=cache.products?.[id]||{};const name=prompt("Nome do produto:",x.title||x.name||"");if(name===null)return;const price=prompt("Preço (Kz):",x.price??"");if(price===null)return;if(!name.trim()||!Number.isFinite(Number(price))||Number(price)<0){alert("Nome ou preço inválido.");return}await update(ref(db,"products/"+id),{...(x.title!==undefined?{title:name.trim()}:{name:name.trim()}),price:Number(price),updatedAt:Date.now(),updatedBy:adminUser.uid})}
 else if(a==="deleteProduct"&&await ask("Eliminar definitivamente este produto? Esta acção não pode ser anulada.")){await remove(ref(db,"products/"+id))}
 else if(a==="orderReview")alert("Pedido seleccionado. A confirmação financeira e a libertação de fundos não são executadas por esta acção.");
